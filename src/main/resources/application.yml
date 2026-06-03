@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:validator_meta;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+
+validator:
+  csvPath: classpath:validation_tables.csv
+  resume: true
+  rerunPassed: false
+  execution:
+    pairParallelism: 1
+    tableParallelism: 4
+    shardParallelism: 2
+    checkParallelism: 1
+    queryTimeoutSeconds: 1800
+    retryTimes: 1
+  datasources:
+    tdsql_01:
+      jdbcUrl: jdbc:h2:mem:tdsql;MODE=MySQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      maxPoolSize: 5
+    ob_01:
+      jdbcUrl: jdbc:h2:mem:ob;MODE=MySQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      maxPoolSize: 5
+  comparePairs:
+    - name: db1_compare
+      source: tdsql_01
+      target: ob_01
+      enabled: true
