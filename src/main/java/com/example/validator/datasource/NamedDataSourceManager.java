@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：根据配置创建多个 HikariCP 数据源，并按名称提供给核验任务使用。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component

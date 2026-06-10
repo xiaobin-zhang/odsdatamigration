@@ -1,6 +1,7 @@
 package com.example.validator.domain;
 
 import com.example.validator.common.CheckType;
+import com.example.validator.common.ShardType;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
  *
  * <p>职责：描述某张表在哪个数据库配对下启用、使用哪些 Checker、核验哪些字段以及抽样/分片规则。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public class TableRule {
@@ -19,6 +20,7 @@ public class TableRule {
     private String sourceTable;
     private String targetTable;
     private String primaryKey;
+    private List<String> primaryKeys = new ArrayList<String>();
     private List<CheckType> checkers = new ArrayList<CheckType>();
     private String whereClause;
     private List<String> amountFields = new ArrayList<String>();
@@ -29,6 +31,7 @@ public class TableRule {
     private String sampleWhere;
     private int sampleLimit = 1000;
     private String shardColumn;
+    private ShardType shardType;
     private List<ShardRange> shardRanges = new ArrayList<ShardRange>();
     private BigDecimal amountTolerance = new BigDecimal("0.00");
 
@@ -42,6 +45,8 @@ public class TableRule {
     public void setTargetTable(String targetTable) { this.targetTable = targetTable; }
     public String getPrimaryKey() { return primaryKey; }
     public void setPrimaryKey(String primaryKey) { this.primaryKey = primaryKey; }
+    public List<String> getPrimaryKeys() { return primaryKeys; }
+    public void setPrimaryKeys(List<String> primaryKeys) { this.primaryKeys = primaryKeys; }
     public List<CheckType> getCheckers() { return checkers; }
     public void setCheckers(List<CheckType> checkers) { this.checkers = checkers; }
     public String getWhereClause() { return whereClause; }
@@ -62,6 +67,8 @@ public class TableRule {
     public void setSampleLimit(int sampleLimit) { this.sampleLimit = sampleLimit; }
     public String getShardColumn() { return shardColumn; }
     public void setShardColumn(String shardColumn) { this.shardColumn = shardColumn; }
+    public ShardType getShardType() { return shardType; }
+    public void setShardType(ShardType shardType) { this.shardType = shardType; }
     public List<ShardRange> getShardRanges() { return shardRanges; }
     public void setShardRanges(List<ShardRange> shardRanges) { this.shardRanges = shardRanges; }
     public BigDecimal getAmountTolerance() { return amountTolerance; }

@@ -11,7 +11,7 @@ import com.example.validator.common.TaskStatus;
  *
  * <p>职责：映射 validation_task 表，保存每个表/分片/Checker 任务的 SQL、状态和执行结果。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @TableName("validation_task")

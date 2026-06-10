@@ -5,7 +5,7 @@ package com.example.validator.common;
  *
  * <p>职责：定义 CSV 中 checkers 字段允许声明的校验能力名称。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public enum CheckType {

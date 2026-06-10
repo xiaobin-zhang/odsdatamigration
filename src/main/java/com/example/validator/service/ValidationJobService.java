@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>职责：维护批次级状态，提供进度查询、暂停、恢复和状态刷新能力。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Service
@@ -160,6 +160,15 @@ public class ValidationJobService {
         refreshProgress(batchId);
         ValidationBatch batch = getRequiredBatch(batchId);
         batch.setStatus(BatchStatus.COMPLETED);
+        batch.setEndTime(LocalDateTime.now());
+        batch.setUpdateTime(LocalDateTime.now());
+        batchMapper.updateById(batch);
+    }
+
+    public void markFailed(String batchId) {
+        refreshProgress(batchId);
+        ValidationBatch batch = getRequiredBatch(batchId);
+        batch.setStatus(BatchStatus.FAILED);
         batch.setEndTime(LocalDateTime.now());
         batch.setUpdateTime(LocalDateTime.now());
         batchMapper.updateById(batch);

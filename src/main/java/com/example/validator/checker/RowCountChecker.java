@@ -17,7 +17,7 @@ import org.springframework.util.StringUtils;
  *
  * <p>职责：生成 count(*) SQL，并比较源端与目标端的总行数是否一致。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
@@ -47,8 +47,8 @@ public class RowCountChecker extends AbstractValidationChecker {
      * @return 行数核验任务列表
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
-        return buildTasks(pair, tableRule, (table, shardRange) ->
-                "select count(*) as total_count from " + table + " where " + SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange));
+        return buildTasks(pair, tableRule, (datasourceName, table, shardRange) ->
+                "select count(*) as total_count from " + table + " where " + SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table));
     }
 
     /**

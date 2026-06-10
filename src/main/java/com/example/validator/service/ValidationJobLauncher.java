@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>职责：解析 CSV、生成任务、创建批次，并在后台线程执行核验作业。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Service
@@ -66,7 +66,13 @@ public class ValidationJobLauncher {
         Map<String, TableRule> ruleIndex = validationPlanner.indexRulesByTaskKey(rules);
         String batchId = UUID.randomUUID().toString();
         validationExecutor.createBatch(batchId, tasks);
-        executorService.submit(() -> validationExecutor.runBatch(batchId, ruleIndex));
+        executorService.submit(() -> {
+            try {
+                validationExecutor.runBatch(batchId, ruleIndex);
+            } catch (RuntimeException e) {
+                jobService.markFailed(batchId);
+            }
+        });
         return batchId;
     }
 }

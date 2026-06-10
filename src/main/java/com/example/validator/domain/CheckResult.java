@@ -7,7 +7,7 @@ import com.example.validator.common.TaskStatus;
  *
  * <p>职责：承载单个核验任务的最终状态和差异摘要。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public class CheckResult {

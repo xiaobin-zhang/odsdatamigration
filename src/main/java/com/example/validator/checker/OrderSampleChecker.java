@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：按配置排序字段取前 N 条样本，并比较源端与目标端样本行是否一致。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
@@ -44,10 +44,10 @@ public class OrderSampleChecker extends AbstractValidationChecker {
      * @return 排序抽样核验任务列表
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
-        return buildTasks(pair, tableRule, (table, shardRange) ->
+        return buildTasks(pair, tableRule, (datasourceName, table, shardRange) ->
                 "select " + SqlBuilder.columns(tableRule.getCompareFields())
                         + " from " + table
-                        + " where " + SqlBuilder.whereWithShard(tableRule.getSampleWhere(), tableRule, shardRange)
+                        + " where " + SqlBuilder.whereWithShard(tableRule.getSampleWhere(), tableRule, shardRange, table)
                         + " order by " + SqlBuilder.columns(tableRule.getOrderFields())
                         + " limit " + tableRule.getSampleLimit());
     }
@@ -62,7 +62,7 @@ public class OrderSampleChecker extends AbstractValidationChecker {
      */
     public CheckResult compare(QueryResult sourceResult, QueryResult targetResult, TableRule tableRule) {
         // 排序抽样比较的是“同样排序规则下前 N 条记录是否完全一致”，可以暴露排序规则、字符集和时间精度差异。
-        return sourceResult.getRows().equals(targetResult.getRows())
+        return ResultComparator.rowsEqual(sourceResult, targetResult, tableRule.getCompareFields())
                 ? CheckResult.pass("排序抽样一致")
                 : CheckResult.fail("排序抽样不一致, sourceRows=" + sourceResult.getRows() + ", targetRows=" + targetResult.getRows());
     }

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：收集 Spring 容器中的所有 {@link ValidationChecker}，并按 {@link CheckType} 提供查找能力。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component

@@ -13,7 +13,7 @@ import java.util.List;
  *
  * <p>职责：定义所有 Checker 插件必须实现的任务规划与结果比对能力。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public interface ValidationChecker {

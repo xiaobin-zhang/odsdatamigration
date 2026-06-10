@@ -12,7 +12,7 @@ import java.util.List;
  *
  * <p>职责：封装普通任务和分片任务的通用生成逻辑，具体 Checker 只需提供 SQL 生成方式。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public abstract class AbstractValidationChecker implements ValidationChecker {
@@ -47,8 +47,8 @@ public abstract class AbstractValidationChecker implements ValidationChecker {
         task.setTargetTable(rule.getTargetTable());
         task.setCheckType(getType());
         task.setShardNo(shardNo);
-        task.setSourceSql(sqlFactory.sql(rule.getSourceTable(), shardRange));
-        task.setTargetSql(sqlFactory.sql(rule.getTargetTable(), shardRange));
+        task.setSourceSql(sqlFactory.sql(pair.getSource(), rule.getSourceTable(), shardRange));
+        task.setTargetSql(sqlFactory.sql(pair.getTarget(), rule.getTargetTable(), shardRange));
         return task;
     }
 
@@ -57,7 +57,7 @@ public abstract class AbstractValidationChecker implements ValidationChecker {
      *
      * <p>职责：根据表名和分片范围生成源端或目标端 SQL。</p>
      *
-     * @author Codex
+     * @author zxb
      * @since 2026-06-03
      */
     protected interface SqlFactory {
@@ -68,6 +68,6 @@ public abstract class AbstractValidationChecker implements ValidationChecker {
          * @param shardRange 当前分片范围，非分片任务可为空
          * @return 核验 SQL
          */
-        String sql(String table, ShardRange shardRange);
+        String sql(String datasourceName, String table, ShardRange shardRange);
     }
 }

@@ -2,6 +2,7 @@ package com.example.validator.checker;
 
 import com.example.validator.common.CheckType;
 import com.example.validator.config.ValidatorProperties;
+import com.example.validator.config.ValidatorProperties.SqlDialect;
 import com.example.validator.domain.CheckResult;
 import com.example.validator.domain.QueryResult;
 import com.example.validator.domain.TableRule;
@@ -15,11 +16,17 @@ import org.springframework.util.StringUtils;
  *
  * <p>职责：按日期字段聚合统计每天数据量，并比较源端与目标端分组结果。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
 public class DateGroupChecker extends AbstractValidationChecker {
+    private final ValidatorProperties properties;
+
+    public DateGroupChecker(ValidatorProperties properties) {
+        this.properties = properties;
+    }
+
     /**
      * 获取当前 Checker 类型。
      *
@@ -45,10 +52,12 @@ public class DateGroupChecker extends AbstractValidationChecker {
      * @return 日期分组核验任务列表
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
-        return buildTasks(pair, tableRule, (table, shardRange) ->
-                "select formatdatetime(" + tableRule.getDateField() + ", 'yyyy-MM-dd') as date_bucket, count(*) as cnt from "
-                        + table + " where " + SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange)
-                        + " group by formatdatetime(" + tableRule.getDateField() + ", 'yyyy-MM-dd') order by date_bucket");
+        return buildTasks(pair, tableRule, (datasourceName, table, shardRange) -> {
+            String bucketExpression = dateBucketExpression(datasourceName, tableRule.getDateField());
+            return "select " + bucketExpression + " as date_bucket, count(*) as cnt from "
+                    + table + " where " + SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table)
+                    + " group by " + bucketExpression + " order by date_bucket";
+        });
     }
 
     /**
@@ -60,8 +69,19 @@ public class DateGroupChecker extends AbstractValidationChecker {
      * @return 分组完全一致返回 PASS，否则返回 FAIL
      */
     public CheckResult compare(QueryResult sourceResult, QueryResult targetResult, TableRule tableRule) {
-        return sourceResult.getRows().equals(targetResult.getRows())
+        return ResultComparator.rowsEqual(sourceResult, targetResult, java.util.Arrays.asList("date_bucket", "cnt"))
                 ? CheckResult.pass("日期分组一致")
                 : CheckResult.fail("日期分组不一致, sourceRows=" + sourceResult.getRows() + ", targetRows=" + targetResult.getRows());
+    }
+
+    private String dateBucketExpression(String datasourceName, String dateField) {
+        SqlDialect dialect = properties.resolveDialect(datasourceName);
+        if (dialect == SqlDialect.H2) {
+            return "formatdatetime(" + dateField + ", 'yyyy-MM-dd')";
+        }
+        if (dialect == SqlDialect.ORACLE || dialect == SqlDialect.OCEANBASE_ORACLE) {
+            return "to_char(" + dateField + ", 'YYYY-MM-DD')";
+        }
+        return "date_format(" + dateField + ", '%Y-%m-%d')";
     }
 }

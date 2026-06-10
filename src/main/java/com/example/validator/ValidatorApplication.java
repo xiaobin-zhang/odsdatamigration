@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  *
  * <p>职责：启动 Spring Boot 容器，加载配置属性，并扫描 MyBatis Plus Mapper。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @SpringBootApplication

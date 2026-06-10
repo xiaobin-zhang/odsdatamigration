@@ -20,7 +20,7 @@ import org.springframework.util.StringUtils;
  *
  * <p>职责：按主键排序抽样，标准化关键字段后计算 MD5 摘要，并比较源端与目标端摘要序列。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
@@ -39,7 +39,7 @@ public class Md5SampleChecker extends AbstractValidationChecker {
      * @return true 表示主键和比对字段均已配置
      */
     public boolean support(TableRule tableRule) {
-        return StringUtils.hasText(tableRule.getPrimaryKey()) && !tableRule.getCompareFields().isEmpty();
+        return !tableRule.getPrimaryKeys().isEmpty() && !tableRule.getCompareFields().isEmpty();
     }
 
     /**
@@ -50,11 +50,11 @@ public class Md5SampleChecker extends AbstractValidationChecker {
      * @return MD5 抽样核验任务列表
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
-        return buildTasks(pair, tableRule, (table, shardRange) ->
+        return buildTasks(pair, tableRule, (datasourceName, table, shardRange) ->
                 "select " + SqlBuilder.columns(columns(tableRule))
                         + " from " + table
-                        + " where " + SqlBuilder.whereWithShard(tableRule.getSampleWhere(), tableRule, shardRange)
-                        + " order by " + tableRule.getPrimaryKey()
+                        + " where " + SqlBuilder.whereWithShard(tableRule.getSampleWhere(), tableRule, shardRange, table)
+                        + " order by " + SqlBuilder.columns(tableRule.getPrimaryKeys())
                         + " limit " + tableRule.getSampleLimit());
     }
 
@@ -97,7 +97,7 @@ public class Md5SampleChecker extends AbstractValidationChecker {
 
     private List<String> columns(TableRule tableRule) {
         List<String> columns = new ArrayList<String>();
-        columns.add(tableRule.getPrimaryKey());
+        columns.addAll(tableRule.getPrimaryKeys());
         for (String field : tableRule.getCompareFields()) {
             if (!columns.contains(field)) {
                 columns.add(field);

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：对配置的金额字段执行 sum、非空数和空值数统计，并按容差比较结果。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
@@ -46,7 +46,7 @@ public class AmountSumChecker extends AbstractValidationChecker {
      * @return 金额汇总核验任务列表
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
-        return buildTasks(pair, tableRule, (table, shardRange) -> {
+        return buildTasks(pair, tableRule, (datasourceName, table, shardRange) -> {
             StringBuilder select = new StringBuilder("select ");
             for (int i = 0; i < tableRule.getAmountFields().size(); i++) {
                 String field = tableRule.getAmountFields().get(i);
@@ -58,7 +58,7 @@ public class AmountSumChecker extends AbstractValidationChecker {
                         .append(", count(*) - count(").append(field).append(") as ").append(field).append("_null");
             }
             return select.append(" from ").append(table)
-                    .append(" where ").append(SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange))
+                    .append(" where ").append(SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table))
                     .toString();
         });
     }

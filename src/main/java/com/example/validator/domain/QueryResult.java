@@ -9,7 +9,7 @@ import java.util.Map;
  *
  * <p>职责：保存某个数据源执行核验 SQL 后返回的行数据和耗时。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public class QueryResult {

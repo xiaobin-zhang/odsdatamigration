@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>职责：验证标识符、条件片段和最终 SQL 的安全拦截规则。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 class SqlSafetyValidatorTest {
@@ -22,6 +22,13 @@ class SqlSafetyValidatorTest {
     @Test
     void rejectsNonSelectSql() {
         assertThrows(IllegalArgumentException.class, () -> validator.assertSelectOnly("delete from t_order"));
+    }
+
+    @Test
+    void rejectsDangerousSelectSql() {
+        assertThrows(IllegalArgumentException.class, () -> validator.assertSelectOnly("select * from t_order for update"));
+        assertThrows(IllegalArgumentException.class, () -> validator.assertSelectOnly("select * from t_order -- comment"));
+        assertThrows(IllegalArgumentException.class, () -> validator.assertSelectOnly("select * into outfile '/tmp/a' from t_order"));
     }
 
     /**

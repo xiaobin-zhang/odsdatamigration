@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.validator.checker.CheckerRegistry;
 import com.example.validator.checker.ValidationChecker;
 import com.example.validator.common.TaskStatus;
+import com.example.validator.config.ValidatorProperties.OnViolation;
 import com.example.validator.config.ValidatorProperties;
 import com.example.validator.datasource.QueryExecutor;
 import com.example.validator.domain.CheckResult;
@@ -11,6 +12,7 @@ import com.example.validator.domain.QueryResult;
 import com.example.validator.domain.TableRule;
 import com.example.validator.domain.ValidationTask;
 import com.example.validator.mapper.ValidationTaskMapper;
+import com.example.validator.safety.SafetyViolationException;
 import com.example.validator.service.ValidationJobService;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：将规划任务落库，按配置并行执行，并维护任务状态以支持断点续跑。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
@@ -155,7 +157,28 @@ public class ValidationExecutor {
             task.setErrorMessage(null);
             taskMapper.updateById(task);
             jobService.refreshProgress(task.getBatchId());
+        } catch (SafetyViolationException e) {
+            if (properties.getSafety().getOnViolation() == OnViolation.SKIP) {
+                task.setStatus(TaskStatus.SKIPPED);
+                task.setResultSummary("SQL safety guard skipped task: " + e.getMessage());
+                task.setErrorMessage(null);
+            } else {
+                task.setStatus(TaskStatus.ERROR);
+                task.setErrorMessage("SQL safety guard blocked task: " + e.getMessage());
+            }
+            taskMapper.updateById(task);
+            jobService.refreshProgress(task.getBatchId());
         } catch (Exception e) {
+            int retryCount = task.getRetryCount() == null ? 0 : task.getRetryCount();
+            if (retryCount < properties.getExecution().getRetryTimes()) {
+                task.setRetryCount(retryCount + 1);
+                task.setStatus(TaskStatus.PENDING);
+                task.setErrorMessage(e.getMessage());
+                taskMapper.updateById(task);
+                jobService.refreshProgress(task.getBatchId());
+                executeOne(task, ruleIndex);
+                return;
+            }
             task.setStatus(TaskStatus.ERROR);
             task.setErrorMessage(e.getMessage());
             taskMapper.updateById(task);

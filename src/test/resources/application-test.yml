@@ -20,16 +20,30 @@ validator:
     checkParallelism: 1
     queryTimeoutSeconds: 30
     retryTimes: 1
+  safety:
+    enabled: true
+    largeTableThresholdGb: 100
+    maxConcurrentHeavyQueries: 1
+    maxResultRows: 10000
+    requireShardForLargeTable: true
+    forbidOffsetShardForLargeTable: true
+    forbidUnindexedOrderByForLargeTable: true
+    explainBeforeExecute: true
+    explainMaxRows: 50000000
+    explainMaxFullScanTables: 0
+    onViolation: SKIP
   datasources:
     tdsql_01:
       jdbcUrl: jdbc:h2:mem:tdsql_test;MODE=MySQL;DB_CLOSE_DELAY=-1
       username: sa
       password:
+      dialect: H2
       maxPoolSize: 5
     ob_01:
       jdbcUrl: jdbc:h2:mem:ob_test;MODE=MySQL;DB_CLOSE_DELAY=-1
       username: sa
       password:
+      dialect: H2
       maxPoolSize: 5
   comparePairs:
     - name: db1_compare

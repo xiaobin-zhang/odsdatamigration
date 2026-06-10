@@ -1,6 +1,7 @@
-pair_name,enabled,source_table,target_table,primary_key,checkers,where_clause,amount_fields,date_field,null_fields,order_fields,compare_fields,sample_where,sample_limit,shard_column,shard_ranges,amount_tolerance
-db1_compare,true,t_order,t_order,order_id,"ROW_COUNT,AMOUNT_SUM,DATE_GROUP,NULL_COUNT,ORDER_SAMPLE,MD5_SAMPLE",1=1,"order_amount,pay_amount",create_time,"user_id,mobile,pay_time","create_time,order_id","order_id,user_id,order_amount,status,remark",1=1,10,,,
-db1_compare,true,t_user,t_user,user_id,"ROW_COUNT,MD5_SAMPLE",1=1,,create_time,"mobile,email",user_id,"user_id,user_name,mobile,email",1=1,10,,,
-db1_compare,true,t_null_only,t_null_only,id,"NULL_COUNT",1=1,,,"name,remark",id,"id,name,remark",1=1,10,,,
-db1_compare,false,t_log,t_log,id,"ROW_COUNT",1=1,,,,,,10,,,
-db1_compare,true,t_skip,t_skip,id,,1=1,,,,,,10,,,
+pair_name,enabled,source_table,target_table,primary_key,checkers,where_clause,amount_fields,date_field,null_fields,order_fields,compare_fields,sample_where,sample_limit,shard_column,shard_type,shard_ranges,amount_tolerance
+db1_compare,true,t_order,t_order,order_id,"ROW_COUNT,AMOUNT_SUM,DATE_GROUP,NULL_COUNT,ORDER_SAMPLE,MD5_SAMPLE",1=1,"order_amount,pay_amount",create_time,"user_id,mobile,pay_time","create_time,order_id","order_id,user_id,order_amount,status,remark",1=1,10,create_time,DATETIME,"2026-01-01 00:00:00~2026-01-01 23:59:59;2026-01-02 00:00:00~2026-01-02 23:59:59",0.00
+db1_compare,true,t_user,t_user,user_id,"ROW_COUNT,MD5_SAMPLE",1=1,,create_time,"mobile,email",user_id,"user_id,user_name,mobile,email",1=1,10,,,,0.00
+db1_compare,true,t_null_only,t_null_only,id,"NULL_COUNT",1=1,,,"name,remark",id,"id,name,remark",1=1,10,,,,0.00
+db1_compare,true,t_composite,t_composite,"tenant_id,order_id","MD5_SAMPLE",1=1,,,,,"tenant_id,order_id,status,remark",1=1,10,,,,0.00
+db1_compare,false,t_log,t_log,id,"ROW_COUNT",1=1,,,,,,1=1,10,,,,0.00
+db1_compare,true,t_skip,t_skip,id,,1=1,,,,,,1=1,10,,,,0.00

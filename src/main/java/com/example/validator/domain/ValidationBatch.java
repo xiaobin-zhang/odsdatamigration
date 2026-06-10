@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  *
  * <p>职责：映射 validation_batch 表，保存作业整体状态、当前运行位置和任务统计信息。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @TableName("validation_batch")

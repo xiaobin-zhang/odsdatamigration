@@ -10,3 +10,8 @@ insert into t_user(user_id,user_name,mobile,email,create_time) values
 insert into t_null_only(id,name,remark) values
 (1,'a',null),
 (2,null,'b');
+
+insert into t_composite(tenant_id,order_id,status,remark) values
+(1,1001,'PAID','a'),
+(1,1002,'NEW','b'),
+(2,1001,'PAID','c');

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：统计配置字段的 NULL 数量，并比较源端与目标端是否一致。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
@@ -44,7 +44,7 @@ public class NullCountChecker extends AbstractValidationChecker {
      * @return 空值数量核验任务列表
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
-        return buildTasks(pair, tableRule, (table, shardRange) -> {
+        return buildTasks(pair, tableRule, (datasourceName, table, shardRange) -> {
             StringBuilder sql = new StringBuilder("select ");
             for (int i = 0; i < tableRule.getNullFields().size(); i++) {
                 String field = tableRule.getNullFields().get(i);
@@ -54,7 +54,7 @@ public class NullCountChecker extends AbstractValidationChecker {
                 sql.append("sum(case when ").append(field).append(" is null then 1 else 0 end) as ").append(field).append("_null");
             }
             return sql.append(" from ").append(table)
-                    .append(" where ").append(SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange))
+                    .append(" where ").append(SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table))
                     .toString();
         });
     }
@@ -68,8 +68,16 @@ public class NullCountChecker extends AbstractValidationChecker {
      * @return 空值数量一致返回 PASS，否则返回 FAIL
      */
     public CheckResult compare(QueryResult sourceResult, QueryResult targetResult, TableRule tableRule) {
-        return sourceResult.getRows().equals(targetResult.getRows())
+        return ResultComparator.rowsEqual(sourceResult, targetResult, nullCountColumns(tableRule))
                 ? CheckResult.pass("空值数量一致")
                 : CheckResult.fail("空值数量不一致, sourceRows=" + sourceResult.getRows() + ", targetRows=" + targetResult.getRows());
+    }
+
+    private List<String> nullCountColumns(TableRule tableRule) {
+        java.util.ArrayList<String> columns = new java.util.ArrayList<String>();
+        for (String field : tableRule.getNullFields()) {
+            columns.add(field + "_null");
+        }
+        return columns;
     }
 }

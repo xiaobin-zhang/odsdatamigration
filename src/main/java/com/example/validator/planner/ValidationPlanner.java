@@ -17,20 +17,22 @@ import org.springframework.stereotype.Component;
  *
  * <p>职责：根据数据库配对和 CSV 表规则选择 Checker 插件，并生成待执行任务。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 @Component
 public class ValidationPlanner {
     private final CheckerRegistry checkerRegistry;
+    private final ShardPlanner shardPlanner;
 
     /**
      * 创建任务规划器。
      *
      * @param checkerRegistry Checker 插件注册表
      */
-    public ValidationPlanner(CheckerRegistry checkerRegistry) {
+    public ValidationPlanner(CheckerRegistry checkerRegistry, ShardPlanner shardPlanner) {
         this.checkerRegistry = checkerRegistry;
+        this.shardPlanner = shardPlanner;
     }
 
     /**
@@ -49,13 +51,14 @@ public class ValidationPlanner {
             if (rule.getCheckers().isEmpty()) {
                 continue;
             }
+            TableRule expandedRule = shardPlanner.expand(pair, rule);
             for (CheckType checkType : rule.getCheckers()) {
                 // 每张表只按 CSV 中声明的 Checker 生成任务；未声明的 Checker 完全不会执行 SQL。
                 ValidationChecker checker = checkerRegistry.getRequired(checkType);
-                if (!checker.support(rule)) {
+                if (!checker.support(expandedRule)) {
                     throw new IllegalArgumentException("表 " + rule.getSourceTable() + " 启用了 " + checkType + " 但缺少必需字段");
                 }
-                tasks.addAll(checker.plan(pair, rule));
+                tasks.addAll(checker.plan(pair, expandedRule));
             }
         }
         return tasks;

@@ -7,7 +7,7 @@ import com.example.validator.common.BatchStatus;
  *
  * <p>职责：对外展示当前作业状态、任务数量统计、完成百分比以及正在比对的库表信息。</p>
  *
- * @author Codex
+ * @author zxb
  * @since 2026-06-03
  */
 public class ProgressSnapshot {
