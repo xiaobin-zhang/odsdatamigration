@@ -48,7 +48,7 @@ public class RowCountChecker extends AbstractValidationChecker {
      */
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
         return buildTasks(pair, tableRule, (datasourceName, table, shardRange) ->
-                "select count(*) as total_count from " + table + " where " + SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table));
+                "select count(*) as total_count " + SqlBuilder.fromWithShard(table, tableRule.getWhereClause(), tableRule, shardRange));
     }
 
     /**

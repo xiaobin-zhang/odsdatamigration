@@ -21,8 +21,8 @@ public class ShardRange {
     private final String to;
     private final int modulus;
     private final int remainder;
-    private final int offset;
-    private final int limit;
+    private final long offset;
+    private final long limit;
     private final int shardCount;
 
     /**
@@ -36,7 +36,7 @@ public class ShardRange {
     }
 
     private ShardRange(Strategy strategy, String from, String to, int modulus, int remainder,
-                       int offset, int limit, int shardCount) {
+                       long offset, long limit, int shardCount) {
         this.strategy = strategy;
         this.from = from;
         this.to = to;
@@ -59,7 +59,7 @@ public class ShardRange {
         return new ShardRange(Strategy.OFFSET, null, null, 0, 0, 0, 0, shardCount);
     }
 
-    public static ShardRange offset(int offset, int limit) {
+    public static ShardRange offset(long offset, long limit) {
         return new ShardRange(Strategy.OFFSET, null, null, 0, 0, offset, limit, 0);
     }
 
@@ -68,7 +68,7 @@ public class ShardRange {
     public String getTo() { return to; }
     public int getModulus() { return modulus; }
     public int getRemainder() { return remainder; }
-    public int getOffset() { return offset; }
-    public int getLimit() { return limit; }
+    public long getOffset() { return offset; }
+    public long getLimit() { return limit; }
     public int getShardCount() { return shardCount; }
 }

@@ -53,8 +53,8 @@ public class NullCountChecker extends AbstractValidationChecker {
                 }
                 sql.append("sum(case when ").append(field).append(" is null then 1 else 0 end) as ").append(field).append("_null");
             }
-            return sql.append(" from ").append(table)
-                    .append(" where ").append(SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table))
+            return sql.append(" ")
+                    .append(SqlBuilder.fromWithShard(table, tableRule.getWhereClause(), tableRule, shardRange))
                     .toString();
         });
     }

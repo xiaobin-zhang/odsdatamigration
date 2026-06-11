@@ -92,6 +92,20 @@ class CsvRuleParserTest {
     }
 
     @Test
+    void shardTypeAloneFailsFast() {
+        String csv = header()
+                + "db1_compare,true,t_order,t_order,id,ROW_COUNT,1=1,,,,,,1=1,10,,NUMBER,,0.00\n";
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(stream(csv)));
+    }
+
+    @Test
+    void offsetShardRequiresPrimaryKeyForStableOrdering() {
+        String csv = header()
+                + "db1_compare,true,t_order,t_order,,ROW_COUNT,1=1,,,,,,1=1,10,status,OFFSET,\"2\",0.00\n";
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(stream(csv)));
+    }
+
+    @Test
     void numberShardRangeSupportsLegacyDashAndTilde() {
         String csv = header()
                 + "db1_compare,true,t_order,t_order,id,ROW_COUNT,1=1,,,,,,1=1,10,id,NUMBER,\"1-10;11~20\",0.00\n";

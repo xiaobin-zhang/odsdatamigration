@@ -116,8 +116,45 @@ class ValidationPlannerTest {
                 parser.parse(new java.io.ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8))));
 
         assertEquals(2, tasks.size());
-        assertTrue(tasks.get(0).getSourceSql().contains("order by order_id limit 2 offset 0"));
-        assertTrue(tasks.get(1).getSourceSql().contains("order by order_id limit 2 offset 2"));
+        assertFalse(tasks.get(0).getSourceSql().contains(" in (select "));
+        assertTrue(tasks.get(0).getSourceSql().contains("from (select * from t_order where 1=1 order by order_id limit 2 offset 0) shard_rows"));
+        assertTrue(tasks.get(1).getSourceSql().contains("from (select * from t_order where 1=1 order by order_id limit 2 offset 2) shard_rows"));
+    }
+
+    @Test
+    void offsetShardForSampleCheckerUsesSampleWhereForWindow() {
+        String csv = header()
+                + "db1_compare,true,t_order,t_order,order_id,MD5_SAMPLE,1=1,,,,,\"order_id,user_id,status\",order_id <= 2,10,order_id,OFFSET,\"2\",0.00\n";
+        List<ValidationTask> tasks = planner.plan(properties.getComparePairs().get(0),
+                parser.parse(new java.io.ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8))));
+
+        assertEquals(2, tasks.size());
+        assertTrue(tasks.get(0).getSourceSql().contains("from (select * from t_order where order_id <= 2 order by order_id limit 1 offset 0) shard_rows"));
+        assertTrue(tasks.get(1).getSourceSql().contains("from (select * from t_order where order_id <= 2 order by order_id limit 1 offset 1) shard_rows"));
+    }
+
+    @Test
+    void offsetShardForAggregateCheckerUsesWhereClauseForWindow() {
+        String csv = header()
+                + "db1_compare,true,t_order,t_order,order_id,ROW_COUNT,order_id <= 2,,,,,,1=1,10,order_id,OFFSET,\"2\",0.00\n";
+        List<ValidationTask> tasks = planner.plan(properties.getComparePairs().get(0),
+                parser.parse(new java.io.ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8))));
+
+        assertEquals(2, tasks.size());
+        assertTrue(tasks.get(0).getSourceSql().contains("from (select * from t_order where order_id <= 2 order by order_id limit 1 offset 0) shard_rows"));
+        assertTrue(tasks.get(1).getSourceSql().contains("from (select * from t_order where order_id <= 2 order by order_id limit 1 offset 1) shard_rows"));
+    }
+
+    @Test
+    void offsetShardOnDuplicateShardColumnUsesDerivedRowsInsteadOfInPredicate() {
+        String csv = header()
+                + "db1_compare,true,t_order,t_order,order_id,ROW_COUNT,1=1,,,,,,1=1,10,status,OFFSET,\"2\",0.00\n";
+        List<ValidationTask> tasks = planner.plan(properties.getComparePairs().get(0),
+                parser.parse(new java.io.ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8))));
+
+        assertEquals(2, tasks.size());
+        assertFalse(tasks.get(0).getSourceSql().contains(" in (select "));
+        assertTrue(tasks.get(0).getSourceSql().contains("from (select * from t_order where 1=1 order by status, order_id limit 2 offset 0) shard_rows"));
     }
 
     @Test

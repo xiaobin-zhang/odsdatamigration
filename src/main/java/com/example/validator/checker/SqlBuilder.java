@@ -12,19 +12,41 @@ public final class SqlBuilder {
     private SqlBuilder() {
     }
 
-    public static String whereWithShard(String baseWhere, TableRule rule, ShardRange shardRange) {
-        return whereWithShard(baseWhere, rule, shardRange, null);
+    public static String fromWithShard(String table, String baseWhere, TableRule rule, ShardRange shardRange) {
+        String where = StringUtils.hasText(baseWhere) ? baseWhere : "1=1";
+        if (shardRange != null && shardRange.getStrategy() == ShardRange.Strategy.OFFSET) {
+            return "from (select * from " + table
+                    + " where " + where
+                    + " order by " + offsetOrderColumns(rule)
+                    + " limit " + shardRange.getLimit()
+                    + " offset " + shardRange.getOffset()
+                    + ") shard_rows";
+        }
+        return "from " + table + " where " + whereWithShard(where, rule, shardRange);
     }
 
-    public static String whereWithShard(String baseWhere, TableRule rule, ShardRange shardRange, String table) {
+    private static String offsetOrderColumns(TableRule rule) {
+        List<String> orderColumns = new ArrayList<String>();
+        if (StringUtils.hasText(rule.getShardColumn())) {
+            orderColumns.add(rule.getShardColumn());
+        }
+        for (String primaryKey : rule.getPrimaryKeys()) {
+            if (!orderColumns.contains(primaryKey)) {
+                orderColumns.add(primaryKey);
+            }
+        }
+        return columns(orderColumns);
+    }
+
+    private static String whereWithShard(String baseWhere, TableRule rule, ShardRange shardRange) {
         String where = StringUtils.hasText(baseWhere) ? baseWhere : "1=1";
         if (shardRange != null && StringUtils.hasText(rule.getShardColumn())) {
-            where = "(" + where + ") and " + shardCondition(where, rule, shardRange, table);
+            where = "(" + where + ") and " + shardCondition(rule, shardRange);
         }
         return where;
     }
 
-    private static String shardCondition(String baseWhere, TableRule rule, ShardRange shardRange, String table) {
+    private static String shardCondition(TableRule rule, ShardRange shardRange) {
         if (shardRange.getStrategy() == ShardRange.Strategy.MOD) {
             return "MOD(" + rule.getShardColumn() + ", " + shardRange.getModulus() + ") = "
                     + shardRange.getRemainder();
@@ -34,17 +56,7 @@ public final class SqlBuilder {
                     + " and " + rule.getShardColumn() + " < " + shardLiteral(rule.getShardType(), shardRange.getTo());
         }
         if (shardRange.getStrategy() == ShardRange.Strategy.OFFSET) {
-            if (!StringUtils.hasText(table)) {
-                throw new IllegalArgumentException("OFFSET 分片必须提供表名");
-            }
-            return rule.getShardColumn() + " in (select " + rule.getShardColumn()
-                    + " from (select " + rule.getShardColumn()
-                    + " from " + table
-                    + " where " + baseWhere
-                    + " order by " + rule.getShardColumn()
-                    + " limit " + shardRange.getLimit()
-                    + " offset " + shardRange.getOffset()
-                    + ") shard_window)";
+            throw new IllegalArgumentException("OFFSET 分片必须通过 fromWithShard 生成分片数据集");
         }
         return rule.getShardColumn() + " between "
                 + shardLiteral(rule.getShardType(), shardRange.getFrom())

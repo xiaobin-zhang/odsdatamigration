@@ -51,10 +51,10 @@ public class ValidationPlanner {
             if (rule.getCheckers().isEmpty()) {
                 continue;
             }
-            TableRule expandedRule = shardPlanner.expand(pair, rule);
             for (CheckType checkType : rule.getCheckers()) {
                 // 每张表只按 CSV 中声明的 Checker 生成任务；未声明的 Checker 完全不会执行 SQL。
                 ValidationChecker checker = checkerRegistry.getRequired(checkType);
+                TableRule expandedRule = shardPlanner.expand(pair, rule, baseWhereFor(checkType, rule));
                 if (!checker.support(expandedRule)) {
                     throw new IllegalArgumentException("表 " + rule.getSourceTable() + " 启用了 " + checkType + " 但缺少必需字段");
                 }
@@ -62,6 +62,13 @@ public class ValidationPlanner {
             }
         }
         return tasks;
+    }
+
+    private String baseWhereFor(CheckType checkType, TableRule rule) {
+        if (checkType == CheckType.MD5_SAMPLE || checkType == CheckType.ORDER_SAMPLE) {
+            return rule.getSampleWhere();
+        }
+        return rule.getWhereClause();
     }
 
     /**

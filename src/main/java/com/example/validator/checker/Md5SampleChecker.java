@@ -52,8 +52,7 @@ public class Md5SampleChecker extends AbstractValidationChecker {
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
         return buildTasks(pair, tableRule, (datasourceName, table, shardRange) ->
                 "select " + SqlBuilder.columns(columns(tableRule))
-                        + " from " + table
-                        + " where " + SqlBuilder.whereWithShard(tableRule.getSampleWhere(), tableRule, shardRange, table)
+                        + " " + SqlBuilder.fromWithShard(table, tableRule.getSampleWhere(), tableRule, shardRange)
                         + " order by " + SqlBuilder.columns(tableRule.getPrimaryKeys())
                         + " limit " + tableRule.getSampleLimit());
     }

@@ -57,8 +57,8 @@ public class AmountSumChecker extends AbstractValidationChecker {
                         .append(", count(").append(field).append(") as ").append(field).append("_non_null")
                         .append(", count(*) - count(").append(field).append(") as ").append(field).append("_null");
             }
-            return select.append(" from ").append(table)
-                    .append(" where ").append(SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table))
+            return select.append(" ")
+                    .append(SqlBuilder.fromWithShard(table, tableRule.getWhereClause(), tableRule, shardRange))
                     .toString();
         });
     }

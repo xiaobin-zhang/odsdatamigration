@@ -30,6 +30,29 @@ CSV 必须包含固定表头：
 pair_name,enabled,source_table,target_table,primary_key,checkers,where_clause,amount_fields,date_field,null_fields,order_fields,compare_fields,sample_where,sample_limit,shard_column,shard_type,shard_ranges,amount_tolerance
 ```
 
+表头字段说明如下：
+
+| 表头字段 | 说明 | 样例 |
+| --- | --- | --- |
+| `pair_name` | 数据源配对名称，对应 `application.yml` 中 `comparePairs.name`，用于选择源库和目标库。 | `db1_compare` |
+| `enabled` | 是否启用当前表规则；`false` 时整张表跳过，不生成校验任务。 | `true` |
+| `source_table` | 源端待校验表名。 | `t_order` |
+| `target_table` | 目标端待校验表名。 | `t_order` |
+| `primary_key` | 主键字段，支持单主键或用逗号分隔的联合主键；CSV 中包含逗号时需要加双引号。 | `order_id`、`"tenant_id,order_id"` |
+| `checkers` | 当前表启用的校验器列表，多个校验器用逗号分隔；为空时不生成校验任务。 | `"ROW_COUNT,AMOUNT_SUM,MD5_SAMPLE"` |
+| `where_clause` | 表级过滤条件，作为所有校验 SQL 的基础条件；为空时默认 `1=1`。 | `status = 'SUCCESS'` |
+| `amount_fields` | 金额或数值汇总字段列表，供 `AMOUNT_SUM` 使用，多个字段用逗号分隔。 | `"order_amount,pay_amount"` |
+| `date_field` | 日期分布统计字段，供 `DATE_GROUP` 使用。 | `create_time` |
+| `null_fields` | 空值数量统计字段列表，供 `NULL_COUNT` 使用，多个字段用逗号分隔。 | `"mobile,email"` |
+| `order_fields` | 排序抽样字段列表，供 `ORDER_SAMPLE` 排序和抽样使用，多个字段用逗号分隔。 | `"create_time,order_id"` |
+| `compare_fields` | 明细抽样比对字段列表，供 `MD5_SAMPLE` 查询和 MD5 比对使用，多个字段用逗号分隔。 | `"order_id,user_id,order_amount,status"` |
+| `sample_where` | 抽样校验专用过滤条件，供抽样类 Checker 使用；为空时默认 `1=1`。 | `create_time >= '2026-01-01'` |
+| `sample_limit` | 抽样行数上限，默认 `1000`，允许范围为 `1..10000`。 | `1000` |
+| `shard_column` | 分片字段；启用分片时必须与 `shard_type`、`shard_ranges` 配合配置。 | `create_time` |
+| `shard_type` | 分片类型；支持 `NUMBER`、`DATE`、`TIME`、`DATETIME`、`NUMBER_MOD`、`DATE_INTERVAL`、`TIME_INTERVAL`、`DATETIME_INTERVAL`、`OFFSET`。 | `DATETIME` |
+| `shard_ranges` | 分片范围或分片数量；多个固定范围用分号分隔，具体格式由 `shard_type` 决定。 | `"2026-01-01 00:00:00~2026-01-02 00:00:00"` |
+| `amount_tolerance` | 金额汇总允许误差，供 `AMOUNT_SUM` 比对时判断是否在容忍范围内。 | `0.01` |
+
 设计要点：
 
 - 按表头名称解析，不依赖列顺序。
@@ -72,7 +95,7 @@ order_id
 | 固定范围 | `NUMBER`、`DATE`、`TIME`、`DATETIME` | `1~1000;1001~2000` | 按显式范围生成多个 `between` 分片，`NUMBER` 兼容旧格式 `1-1000` |
 | 数值取模 | `NUMBER_MOD` | `8` | 生成 8 个分片：`MOD(shard_column, 8) = 0..7` |
 | 时间间隔 | `DATE_INTERVAL`、`TIME_INTERVAL`、`DATETIME_INTERVAL` | `2026-01-01~2026-02-01~1d` | 按步长展开半开区间：`shard_column >= from and shard_column < to` |
-| Offset 平均切割 | `OFFSET` | `20` | 先按源表 `count(*)` 计算每片大小，再生成 `order by shard_column limit size offset n` 窗口分片 |
+| Offset 平均切割 | `OFFSET` | `20` | 先按源表 `count(*)` 计算每片大小，再把 `order by shard_column limit size offset n` 结果作为当前分片数据集 |
 
 `shard_ranges` 配置示例：
 
@@ -99,20 +122,19 @@ SQL 语义：
 -- 时间间隔，使用半开区间避免边界重复
 (base_where) and shard_column >= from_literal and shard_column < to_literal
 
--- Offset，使用源表 count 计算 limit/offset，并按 shard_column 稳定排序取窗口
-(base_where) and shard_column in (
-  select shard_column from (
-    select shard_column from table_name
-    where base_where
-    order by shard_column
-    limit shard_size offset shard_offset
-  ) shard_window
-)
+-- Offset，使用源表 count 计算 limit/offset，并把窗口结果作为当前分片数据集
+from (
+  select *
+  from table_name
+  where base_where
+  order by shard_column
+  limit shard_size offset shard_offset
+) shard_rows
 ```
 
 时间间隔步长格式为 `数字 + 单位`。`DATE_INTERVAL` 支持 `d`，`TIME_INTERVAL` 和 `DATETIME_INTERVAL` 支持 `s`、`m`、`h`、`d`。Offset 分片要求 `shard_column` 是稳定排序列，推荐使用主键或唯一递增列。
 
-`CsvRuleParser` 负责校验策略参数：`NUMBER_MOD` 和 `OFFSET` 的 `shard_ranges` 必须是正整数；时间间隔必须是 `start~end~step`；固定范围按 `shard_type` 校验数值、日期、时间或时间戳字面量。`ShardPlanner` 在任务规划阶段展开 offset 分片，并以源表 count 作为分片大小计算依据。`SqlBuilder.whereWithShard` 负责按分片策略生成最终 SQL 条件。
+`CsvRuleParser` 负责校验策略参数：`NUMBER_MOD` 和 `OFFSET` 的 `shard_ranges` 必须是正整数；时间间隔必须是 `start~end~step`；固定范围按 `shard_type` 校验数值、日期、时间或时间戳字面量。`ShardPlanner` 在任务规划阶段展开 offset 分片，并以源表 count 作为分片大小计算依据。`SqlBuilder.whereWithShard` 负责生成 `RANGE`、`MOD`、`INTERVAL` 的过滤条件；`SqlBuilder.fromWithShard` 负责为所有策略生成表数据源，其中 `OFFSET` 生成派生表分片数据集。
 
 ### 2.5 Checker 可插拔
 
@@ -255,7 +277,7 @@ sequenceDiagram
 
     Planner->>ShardPlanner: expand(pair, rule)
     alt OFFSET 策略
-        ShardPlanner->>Source: select count(*) from source_table where where_clause
+        ShardPlanner->>Source: select count(*) from source_table where baseWhere
         Source-->>ShardPlanner: total_count
         ShardPlanner->>Rule: 展开 limit/offset 分片
     else RANGE/MOD/INTERVAL 策略
@@ -264,17 +286,17 @@ sequenceDiagram
     loop 每个 Checker
         Checker->>Rule: 读取 shard_column、shard_type、shard_ranges
         loop 每个分片
-            Checker->>Builder: whereWithShard(baseWhere, rule, shardRange, table)
+            Checker->>Builder: fromWithShard(table, baseWhere, rule, shardRange)
             alt RANGE
-                Builder->>Builder: 生成 between typed literal 条件
+                Builder->>Builder: 生成 from table where base_where and between 条件
             else MOD
-                Builder->>Builder: 生成 MOD(column, shard_count) = remainder
+                Builder->>Builder: 生成 from table where base_where and MOD 条件
             else INTERVAL
-                Builder->>Builder: 生成 >= from and < to 半开区间
+                Builder->>Builder: 生成 from table where base_where and 半开区间
             else OFFSET
-                Builder->>Builder: 生成 order by column limit/offset 窗口子查询
+                Builder->>Builder: 生成 from (select * ... limit/offset) shard_rows
             end
-            Builder-->>Checker: base_where + 策略化分片条件
+            Builder-->>Checker: 当前分片数据源
             Checker->>Task: 写入 source_sql 和 target_sql
         end
     end

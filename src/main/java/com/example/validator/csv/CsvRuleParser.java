@@ -154,15 +154,16 @@ public class CsvRuleParser {
 
     private void validateShardConfig(TableRule rule) {
         boolean hasShardColumn = StringUtils.hasText(rule.getShardColumn());
+        boolean hasShardType = rule.getShardType() != null;
         boolean hasShardRanges = !rule.getShardRanges().isEmpty();
-        if (!hasShardColumn && !hasShardRanges) {
+        if (!hasShardColumn && !hasShardType && !hasShardRanges) {
             return;
         }
-        if (!hasShardColumn || !hasShardRanges) {
-            throw new IllegalArgumentException("shard_column 和 shard_ranges 必须同时配置");
+        if (!hasShardColumn || !hasShardType || !hasShardRanges) {
+            throw new IllegalArgumentException("启用分片时 shard_column、shard_type 和 shard_ranges 必须同时配置");
         }
-        if (rule.getShardType() == null) {
-            throw new IllegalArgumentException("启用分片时必须配置 shard_type");
+        if (rule.getShardType() == ShardType.OFFSET && rule.getPrimaryKeys().isEmpty()) {
+            throw new IllegalArgumentException("OFFSET 分片必须配置 primary_key 作为稳定排序字段");
         }
         sqlSafetyValidator.assertIdentifier(rule.getShardColumn(), "shard_column");
     }

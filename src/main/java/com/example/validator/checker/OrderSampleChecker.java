@@ -46,8 +46,7 @@ public class OrderSampleChecker extends AbstractValidationChecker {
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
         return buildTasks(pair, tableRule, (datasourceName, table, shardRange) ->
                 "select " + SqlBuilder.columns(tableRule.getCompareFields())
-                        + " from " + table
-                        + " where " + SqlBuilder.whereWithShard(tableRule.getSampleWhere(), tableRule, shardRange, table)
+                        + " " + SqlBuilder.fromWithShard(table, tableRule.getSampleWhere(), tableRule, shardRange)
                         + " order by " + SqlBuilder.columns(tableRule.getOrderFields())
                         + " limit " + tableRule.getSampleLimit());
     }

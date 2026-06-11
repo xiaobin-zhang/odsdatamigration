@@ -54,8 +54,8 @@ public class DateGroupChecker extends AbstractValidationChecker {
     public List<ValidationTask> plan(ValidatorProperties.ComparePair pair, final TableRule tableRule) {
         return buildTasks(pair, tableRule, (datasourceName, table, shardRange) -> {
             String bucketExpression = dateBucketExpression(datasourceName, tableRule.getDateField());
-            return "select " + bucketExpression + " as date_bucket, count(*) as cnt from "
-                    + table + " where " + SqlBuilder.whereWithShard(tableRule.getWhereClause(), tableRule, shardRange, table)
+            return "select " + bucketExpression + " as date_bucket, count(*) as cnt "
+                    + SqlBuilder.fromWithShard(table, tableRule.getWhereClause(), tableRule, shardRange)
                     + " group by " + bucketExpression + " order by date_bucket";
         });
     }

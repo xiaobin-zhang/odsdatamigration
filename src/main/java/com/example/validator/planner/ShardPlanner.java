@@ -28,7 +28,7 @@ public class ShardPlanner {
         this.dataSourceManager = dataSourceManager;
     }
 
-    public TableRule expand(ValidatorProperties.ComparePair pair, TableRule rule) {
+    public TableRule expand(ValidatorProperties.ComparePair pair, TableRule rule, String baseWhere) {
         if (!requiresOffsetExpansion(rule)) {
             return rule;
         }
@@ -38,8 +38,8 @@ public class ShardPlanner {
                     + rule.getSourceTable() + ", use RANGE or INTERVAL shard instead");
         }
         int shardCount = rule.getShardRanges().get(0).getShardCount();
-        long total = sourceCount(pair, rule);
-        int limit = (int) Math.max(1, (total + shardCount - 1) / shardCount);
+        long total = sourceCount(pair, rule, baseWhere);
+        long limit = Math.max(1L, (total + shardCount - 1) / shardCount);
         List<ShardRange> ranges = new ArrayList<ShardRange>();
         for (int i = 0; i < shardCount; i++) {
             ranges.add(ShardRange.offset(i * limit, limit));
@@ -55,8 +55,8 @@ public class ShardPlanner {
                 && rule.getShardRanges().get(0).getShardCount() > 0;
     }
 
-    private long sourceCount(ValidatorProperties.ComparePair pair, TableRule rule) {
-        String where = StringUtils.hasText(rule.getWhereClause()) ? rule.getWhereClause() : "1=1";
+    private long sourceCount(ValidatorProperties.ComparePair pair, TableRule rule, String baseWhere) {
+        String where = StringUtils.hasText(baseWhere) ? baseWhere : "1=1";
         String sql = "select count(*) as total_count from " + rule.getSourceTable() + " where " + where;
         QueryResult result = queryExecutor.query(pair.getSource(), sql, properties.getExecution().getQueryTimeoutSeconds());
         Map<String, Object> row = result.getRows().get(0);
